@@ -1,0 +1,497 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mongodb
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongod.conf
+  labels:
+    app: mongodb
+  namespace: mongodb
+data:
+  mongod.conf: |-
+    # mongod.conf
+
+    # for documentation of all options, see:
+    #   http://docs.mongodb.org/manual/reference/configuration-options/
+
+    # Where and how to store data.
+    storage:
+      dbPath: /var/lib/mongodb
+      journal:
+        enabled: true
+    #  engine:
+    #  wiredTiger:
+
+    # where to write logging data.
+    systemLog:
+      destination: file
+      logAppend: true
+    # how the process runs
+    processManagement:
+      timeZoneInfo: /usr/share/zoneinfo
+
+    #security:
+
+    #operationProfiling:
+
+    replication:
+      replSetName: "rs0"
+
+    #sharding:
+
+    ## Enterprise-Only Options:
+
+    #auditLog:
+
+    #snmp:
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb-1
+  labels:
+    app: mongodb-1
+  namespace: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-1   
+  serviceName: mongodb-1
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: mongodb-1
+    spec:    
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mongodb-1
+            topologyKey: "kubernetes.io/hostname"
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mongodb-1
+            topologyKey: "kubernetes.io/hostname"
+      tolerations:
+      # this toleration is to have the daemonset runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: mongodb-1
+        image: mongo:5.0.2
+        command: ["mongod"]
+        args: ["--config", "/etc/mongod.conf", "--logpath", "/dev/stdout"]
+        ports:
+        - containerPort: 27017
+          hostPort: 27017
+          name: mongodb-1
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/mongod.conf
+          subPath: mongod.conf
+      volumes:
+      - name: config-volume
+        configMap:
+          name: mongod.conf
+          
+---
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: mongodb-2
+#  labels:
+#    app: mongodb-2
+#  namespace: mongodb
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: mongodb-2   
+#  serviceName: mongodb-2
+#  updateStrategy:
+#    type: RollingUpdate
+#  template:
+#    metadata:
+#      labels:
+#        app: mongodb-2
+#    spec:    
+#      affinity:
+#        podAntiAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-2
+#            topologyKey: "kubernetes.io/hostname"
+#        podAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-2
+#            topologyKey: "kubernetes.io/hostname"
+#      tolerations:
+#      # this toleration is to have the daemonset runnable on master nodes
+#      # remove it if your masters can't run pods
+#      - key: node-role.kubernetes.io/master
+#        operator: Exists
+#        effect: NoSchedule
+#      containers:
+#      - name: mongodb-2
+#        image: mongo:5.0.2
+#        ports:
+#        - containerPort: 27017
+#          hostPort: 27017
+#          name: mongodb-2
+#        volumeMounts:
+#        - name: config-volume
+#          mountPath: /etc/mongod.conf
+#          subPath: mongod.conf
+#      volumes:
+#      - name: config-volume
+#        configMap:
+#          name: mongod.conf
+#  
+#---
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: mongodb-3
+#  labels:
+#    app: mongodb-3
+#  namespace: mongodb
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: mongodb-3   
+#  serviceName: mongodb-3
+#  updateStrategy:
+#    type: RollingUpdate
+#  template:
+#    metadata:
+#      labels:
+#        app: mongodb-3
+#    spec:    
+#      affinity:
+#        podAntiAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-3
+#            topologyKey: "kubernetes.io/hostname"
+#        podAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-3
+#            topologyKey: "kubernetes.io/hostname"
+#      tolerations:
+#      # this toleration is to have the daemonset runnable on master nodes
+#      # remove it if your masters can't run pods
+#      - key: node-role.kubernetes.io/master
+#        operator: Exists
+#        effect: NoSchedule
+#      containers:
+#      - name: mongodb-3
+#        image: mongo:5.0.2
+#        ports:
+#        - containerPort: 27017
+#          hostPort: 27017
+#          name: mongodb-3
+#        volumeMounts:
+#        - name: config-volume
+#          mountPath: /etc/mongod.conf
+#          subPath: mongod.conf
+#      volumes:
+#      - name: config-volume
+#        configMap:
+#          name: mongod.conf
+#---
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: mongodb-4
+#  labels:
+#    app: mongodb-4
+#  namespace: mongodb
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: mongodb-4   
+#  serviceName: mongodb-4
+#  updateStrategy:
+#    type: RollingUpdate
+#  template:
+#    metadata:
+#      labels:
+#        app: mongodb-4
+#    spec:    
+#      affinity:
+#        podAntiAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-4
+#            topologyKey: "kubernetes.io/hostname"
+#        podAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-4
+#            topologyKey: "kubernetes.io/hostname"
+#      tolerations:
+#      # this toleration is to have the daemonset runnable on master nodes
+#      # remove it if your masters can't run pods
+#      - key: node-role.kubernetes.io/master
+#        operator: Exists
+#        effect: NoSchedule
+#      containers:
+#      - name: mongodb-4
+#        image: mongo:5.0.2
+#        ports:
+#        - containerPort: 27017
+#          hostPort: 27017
+#          name: mongodb-4
+#        volumeMounts:
+#        - name: config-volume
+#          mountPath: /etc/mongod.conf
+#          subPath: mongod.conf
+#      volumes:
+#      - name: config-volume
+#        configMap:
+#          name: mongod.conf
+#---
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: mongodb-5
+#  labels:
+#    app: mongodb-5
+#  namespace: mongodb
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: mongodb-5   
+#  serviceName: mongodb-5
+#  updateStrategy:
+#    type: RollingUpdate
+#  template:
+#    metadata:
+#      labels:
+#        app: mongodb-5
+#    spec:    
+#      affinity:
+#        podAntiAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-5
+#            topologyKey: "kubernetes.io/hostname"
+#        podAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-5
+#            topologyKey: "kubernetes.io/hostname"
+#      tolerations:
+#      # this toleration is to have the daemonset runnable on master nodes
+#      # remove it if your masters can't run pods
+#      - key: node-role.kubernetes.io/master
+#        operator: Exists
+#        effect: NoSchedule
+#      containers:
+#      - name: mongodb-5
+#        image: mongo:5.0.2
+#        ports:
+#        - containerPort: 27017
+#          hostPort: 27017
+#          name: mongodb-5
+#        volumeMounts:
+#        - name: config-volume
+#          mountPath: /etc/mongod.conf
+#          subPath: mongod.conf
+#      volumes:
+#      - name: config-volume
+#        configMap:
+#          name: mongod.conf
+#          
+#---
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: mongodb-6
+#  labels:
+#    app: mongodb-6
+#  namespace: mongodb
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: mongodb-6   
+#  serviceName: mongodb-6
+#  updateStrategy:
+#    type: RollingUpdate
+#  template:
+#    metadata:
+#      labels:
+#        app: mongodb-6
+#    spec:    
+#      affinity:
+#        podAntiAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-6
+#            topologyKey: "kubernetes.io/hostname"
+#        podAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: app
+#                operator: In
+#                values:
+#                - mongodb-6
+#            topologyKey: "kubernetes.io/hostname"
+#      tolerations:
+#      # this toleration is to have the daemonset runnable on master nodes
+#      # remove it if your masters can't run pods
+#      - key: node-role.kubernetes.io/master
+#        operator: Exists
+#        effect: NoSchedule
+#      containers:
+#      - name: mongodb-6
+#        image: mongo:5.0.2
+#        ports:
+#        - containerPort: 27017
+#          hostPort: 27017
+#          name: mongodb-4
+#        volumeMounts:
+#        - name: config-volume
+#          mountPath: /etc/mongod.conf
+#          subPath: mongod.conf
+#      volumes:
+#      - name: config-volume
+#        configMap:
+#          name: mongod.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-1
+  namespace: mongodb
+spec:
+  selector:
+    app: mongodb-1
+  ports:
+    - port: 27017
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-2
+  namespace: mongodb
+spec:
+  selector:
+    app: mongodb-2
+  ports:
+    - port: 27017
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-3
+  namespace: mongodb
+spec:
+  selector:
+    app: mongodb-3
+  ports:
+    - port: 27017
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-4
+  namespace: mongodb
+spec:
+  selector:
+    app: mongodb-4
+  ports:
+    - port: 27017
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-5
+  namespace: mongodb
+spec:
+  selector:
+    app: mongodb-5
+  ports:
+    - port: 27017
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-6
+  namespace: mongodb
+spec:
+  selector:
+    app: mongodb-6
+  ports:
+    - port: 27017
+  type: NodePort
+
+#mongo mongodb://mongodb-1.mongodb.svc.cluster.local,mongodb-2.mongodb.svc.cluster.local,mongodb-3.mongodb.svc.cluster.local,mongodb-4.mongodb.svc.cluster.local,mongodb-5.mongodb.svc.cluster.local,mongodb-6.mongodb.svc.cluster.local/?replicaSet=rs0
+#mongo mongodb://mongodb-1.mongodb.svc.cluster.local,mongodb-2.mongodb.svc.cluster.local,mongodb-3.mongodb.svc.cluster.local,mongodb-4.mongodb.svc.cluster.local,mongodb-5.mongodb.svc.cluster.local,mongodb-6.mongodb.svc.cluster.local
